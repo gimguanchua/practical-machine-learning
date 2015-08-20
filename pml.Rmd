@@ -17,7 +17,7 @@ for taining and testing respectively.
 We begin by loading and doing some exploration.
 ```{r, echo = TRUE}
 training = read.csv('pml-training.csv', na.strings=c('NA', '#DIV/0!'))
-testing = read.csv('pml-testing.csv')
+testing = read.csv('pml-testing.csv', na.strings=c('NA', '#DIV/0!'))
 
 # commented out because it will be too long
 #summary(training)
@@ -40,6 +40,18 @@ training = training[, logicalsIndices]
 
 # get rid of columns with missing values
 training <- training[, colSums(is.na(training)) == 0]
+
+# similarly for testing set
+testing$X = NULL
+testing$user_name = NULL
+testing$raw_timestamp_part_1 = NULL
+testing$raw_timestamp_part_2 = NULL
+testing$cvtd_timestamp = NULL
+testing$new_window = NULL
+testing$num_window = NULL
+logicalsIndices = !sapply(testing, is.logical)
+testing = testing[, logicalsIndices]
+testing <- testing[, colSums(is.na(testing)) == 0]
 
 # and partition out the data
 set.seed(12345) # For reproducibile purpose
@@ -68,6 +80,14 @@ We can see the importance of the variables:
 ```{r, echo = TRUE}
 varImpPlot(model)
 ```
+
+### Test Set
+Applying the model to the test set:
+```{r, echo = TRUE}
+result = predict(model, testing)
+result
+```
+
 
 Reference  
 
