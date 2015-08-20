@@ -1,0 +1,77 @@
+---
+title: "Predict How Well Weight Lifting Exercises Were Performed Using Machine Learning"
+author: "ggchua"
+---
+
+### Executive Summary
+This is a write-up of the assignment to use machine learning to predict how well weight lifting exercises were performed. We used Random Forest for this as it is accurate and useful when you have many variables. Also, cross validation is not necessary for the algorithm. The resultant model has an overall accuracy of 99.29%.  
+
+### The Dataset
+The data is downloaded from the website:  
+http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).  
+The dataset has been partitioned beforehand and is downloaded at  
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv  
+and  
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv  
+for taining and testing respectively.  
+We begin by loading and doing some exploration.
+```{r, echo = TRUE}
+training = read.csv('pml-training.csv', na.strings=c('NA', '#DIV/0!'))
+testing = read.csv('pml-testing.csv')
+
+# commented out because it will be too long
+#summary(training)
+```
+
+As the testing set has only 20 observations, this is asumed to mean that this set is for part 2 of the assignment. Therefore, we will need to partition the training set into training and testing.  
+From the summary of the training set, out of the 160 variables, we can identify a few variables that are irrelevant to the training. We will remove these.  
+```{r, echo = TRUE}
+training$X = NULL
+training$user_name = NULL
+training$raw_timestamp_part_1 = NULL
+training$raw_timestamp_part_2 = NULL
+training$cvtd_timestamp = NULL
+training$new_window = NULL
+training$num_window = NULL
+
+# get rid of a bunch of logicals
+logicalsIndices = !sapply(training, is.logical)
+training = training[, logicalsIndices]
+
+# get rid of columns with missing values
+training <- training[, colSums(is.na(training)) == 0]
+
+# and partition out the data
+set.seed(12345) # For reproducibile purpose
+library(caret)
+partition = createDataPartition(training$classe, p=0.70, list=F)
+trainData = training[partition,]
+testData = training[-partition,]
+```
+  
+### Learning Model
+The problem is to build a model to predict the classification variable "classe" based on 152 variables. Random Forest technique seems to be suitable for this as this is a classification tree problem with a large number of variables. We can also get a measure of variable importance. Random Forest also do not require separate cross-validation, so we're good too (http://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm#ooberr).  
+```{r, echo = TRUE}
+library(randomForest)
+model = randomForest(classe ~ ., data=trainData)
+model
+```
+OOB error is 0.52%, which is good.  
+Testing with the partitioned test data,
+```{r, echo = TRUE}
+predicts <- predict(model, testData)
+confusionMatrix(testData$classe, predicts)
+```
+The overall accuracy is 0.9929 and kappa is 0.991. Thus out-of-sample error is at 0.71%.
+
+We can see the importance of the variables:
+```{r, echo = TRUE}
+varImpPlot(model)
+```
+
+Reference  
+
+
+Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
+
+Read more: http://groupware.les.inf.puc-rio.br/har#ixzz3jET3P3Nw
